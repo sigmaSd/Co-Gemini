@@ -41,6 +41,8 @@ Example:
 I'll analyze your system's output and respond with actions when needed.
 Be concise in your commands, speak clearly, and stay focused on the task.
 
+You have to start with [Command] before any other commands so I can detect it.
+
 Note: We can communicate through voice - I can listen to your speech input and respond verbally through the audio interface. This two-way voice interaction is built-in and doesn't require any special commands.`;
 
 const HTML = `
@@ -60,6 +62,16 @@ const HTML = `
         recognition.continuous = false;
         recognition.lang = 'en-US';
 
+        // Workaround for Chrome's 15-second speech cutoff
+        let utteranceTimer;
+        function keepSpeechAlive() {
+            if (synthesis.speaking) {
+                synthesis.pause();
+                synthesis.resume();
+                utteranceTimer = setTimeout(keepSpeechAlive, 14000);
+            }
+        }
+
         recognition.onresult = (event) => {
             const text = event.results[0][0].transcript;
             document.getElementById('status').textContent = 'You said: ' + text;
@@ -74,9 +86,17 @@ const HTML = `
             const data = JSON.parse(event.data);
             if (data.type === 'speak') {
                 const utterance = new SpeechSynthesisUtterance(data.text);
+
+                utterance.onstart = () => {
+                    clearTimeout(utteranceTimer);
+                    utteranceTimer = setTimeout(keepSpeechAlive, 14000);
+                };
+
                 utterance.onend = () => {
+                    clearTimeout(utteranceTimer);
                     document.getElementById('status').textContent = 'Ready';
                 };
+
                 synthesis.speak(utterance);
             } else if (data.type === 'startListening') {
                 recognition.start();
