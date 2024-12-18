@@ -1,5 +1,6 @@
 # Co-Gemini
 
+To listen to the audio right click on this video and open it in a new tab (seems like a github limitation)  
 [demo.webm](https://github.com/user-attachments/assets/9d6a086c-2946-4204-a18f-97e8e89b0a66)
 
 A voice-enabled AI copilot powered by Google's Gemini that can control your Linux desktop through natural language commands. Acts as your personal desktop assistant with both voice and text interfaces.
