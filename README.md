@@ -29,6 +29,7 @@ The API is free to use with generous quotas.
 - flameshot (for screenshots)
 - notify-send (for system notifications)
 - A modern web browser with WebSpeech API support (Chrome recommended)
+- Xorg is needed for xdotool commands, the rest of the commands work on wayland
 
 Install on Fedora:
 ```bash
@@ -40,20 +41,12 @@ On Ubuntu/Debian:
 sudo apt install xdotool xclip flameshot libnotify-bin
 ```
 
-## Installation
+## Usage
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/co-gemini.git
-cd co-gemini
-```
-
-2. Set up your API key:
+0. Set up your API key:
 ```bash
 export API_KEY="your-google-api-key"
 ```
-
-## Usage
 
 1. Start the server:
 ```bash
