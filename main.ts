@@ -72,6 +72,11 @@ const HTML = `
             }
         }
 
+        function stopSpeaking() {
+            synthesis.cancel();
+            clearTimeout(utteranceTimer);
+        }
+
         recognition.onresult = (event) => {
             const text = event.results[0][0].transcript;
             document.getElementById('status').textContent = 'You said: ' + text;
@@ -85,6 +90,7 @@ const HTML = `
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === 'speak') {
+                stopSpeaking();
                 const utterance = new SpeechSynthesisUtterance(data.text);
 
                 utterance.onstart = () => {
@@ -99,12 +105,14 @@ const HTML = `
 
                 synthesis.speak(utterance);
             } else if (data.type === 'startListening') {
+                stopSpeaking();
                 recognition.start();
                 document.getElementById('status').textContent = 'Listening...';
             }
         };
 
         document.getElementById('listen').onclick = () => {
+            stopSpeaking();
             recognition.start();
             document.getElementById('status').textContent = 'Listening...';
         };
@@ -134,11 +142,15 @@ async function handleCommands(
         open(line.split(/\s+/)[1]);
       } else if (line.startsWith("[text]")) {
         console.log("sending text");
-        await $`xdotool type "${line.slice(6)}"`.quiet();
+        for (const part of line.slice(6).trim().split(/\s+/)) {
+          await $`xdotool type ${part}`.quiet().noThrow();
+          await $`xdotool key space`.quiet().noThrow();
+        }
       } else if (line.startsWith("[screenShot]")) {
         console.log("taking screenshot");
         const screenshot =
           await $`rm /tmp/screenshot.png; flameshot full -p /tmp/screenshot.png && base64 -w 0 /tmp/screenshot.png`
+            .noThrow()
             .text();
         const resp = await chat.sendMessage([
           { inlineData: { data: screenshot, mimeType: "image/png" } },
@@ -147,13 +159,14 @@ async function handleCommands(
         console.log(responseText);
         onResponse?.(responseText);
       } else if (line.startsWith("[clipBoard]")) {
-        const clipboard = await $`xclip -o -selection clipboard`.text();
+        const clipboard = await $`xclip -o -selection clipboard`.noThrow()
+          .text();
         const resp = await chat.sendMessage(`Clipboard: ${clipboard}`);
         const responseText = resp.response.text();
         console.log(responseText);
         onResponse?.(responseText);
       } else if (line.startsWith("[notify]")) {
-        await $`notify-send "${line.slice(8)}"`.quiet();
+        await $`notify-send "${line.slice(8)}"`.quiet().noThrow();
       } else if (line.startsWith("[search]")) {
         open("xdg-open", [
           `https://www.google.com/search?q=${
@@ -161,19 +174,19 @@ async function handleCommands(
           }`,
         ]);
       } else if (line.startsWith("[file]")) {
-        await $`xdg-open "${line.slice(6)}"`.quiet();
+        await $`xdg-open "${line.slice(6)}"`.quiet().noThrow();
       } else if (line.startsWith("[keyPress]")) {
-        await $`xdotool key ${line.split(/\s+/)[1]}`.quiet();
+        await $`xdotool key ${line.split(/\s+/)[1]}`.quiet().noThrow();
       } else if (line.startsWith("[window]")) {
         const action = line.split(/\s+/)[1];
         if (action === "maximize") {
-          await $`xdotool getactivewindow windowmaximize`.quiet();
+          await $`xdotool getactivewindow windowmaximize`.quiet().noThrow();
         }
         if (action === "minimize") {
-          await $`xdotool getactivewindow windowminimize`.quiet();
+          await $`xdotool getactivewindow windowminimize`.quiet().noThrow();
         }
         if (action === "close") {
-          await $`xdotool getactivewindow windowclose`.quiet();
+          await $`xdotool getactivewindow windowclose`.quiet().noThrow();
         }
       }
     }
