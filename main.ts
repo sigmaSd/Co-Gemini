@@ -24,7 +24,6 @@ Available Commands:
 - [file] (path): Opens file with default app
 - [keyPress] (keys): Simulates keyboard input
 - [window] (action): Controls windows (maximize/minimize/close)
-- [speak] (text): Speaks the text out loud
 - [listen]: Listens for voice input
 
 To execute commands:
@@ -40,7 +39,9 @@ Example:
 [keyPress] Enter
 
 I'll analyze your system's output and respond with actions when needed.
-Be concise in your commands, speak clearly, and stay focused on the task.`;
+Be concise in your commands, speak clearly, and stay focused on the task.
+
+Note: We can communicate through voice - I can listen to your speech input and respond verbally through the audio interface. This two-way voice interaction is built-in and doesn't require any special commands.`;
 
 const HTML = `
 <!DOCTYPE html>
@@ -65,11 +66,21 @@ const HTML = `
             ws.send(JSON.stringify({ type: 'speech', text }));
         };
 
+        recognition.onend = () => {
+            document.getElementById('status').textContent = 'Ready';
+        };
+
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === 'speak') {
                 const utterance = new SpeechSynthesisUtterance(data.text);
+                utterance.onend = () => {
+                    document.getElementById('status').textContent = 'Ready';
+                };
                 synthesis.speak(utterance);
+            } else if (data.type === 'startListening') {
+                recognition.start();
+                document.getElementById('status').textContent = 'Listening...';
             }
         };
 
@@ -168,6 +179,14 @@ if (import.meta.main) {
       handleWebSocket({ chat, ws: socket, connections });
       return response;
     }
+
+    if (req.method === "POST" && req.url.endsWith("/trigger-listen")) {
+      for (const ws of connections) {
+        ws.send(JSON.stringify({ type: "startListening" }));
+      }
+      return new Response("OK");
+    }
+
     return new Response(HTML, {
       headers: { "content-type": "text/html" },
     });
