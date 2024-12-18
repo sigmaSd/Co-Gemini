@@ -54,13 +54,14 @@ export API_KEY="your-google-api-key"
 
 1. Start the server:
 ```bash
-deno run -A main.ts
+# Run with no setup
+deno run -A https://raw.githubusercontent.com/sigmaSd/Co-Gemini/refs/heads/master/main.ts
+# Otherwise you can just clone the repo and run main.ts
 ```
 
 2. Open http://localhost:8000 in your browser for voice interface
 
 3. Use the command line interface directly in the terminal
-
 
 4. Global Voice Activation Setup:
    - Include the `triggerListen.sh` script in your keyboard shortcuts for system-wide voice command access:
@@ -95,9 +96,6 @@ deno run -A main.ts
 ## Future Improvements
 
 - Video stream support is possible but currently not implemented to avoid high bandwidth usage
-- Additional command support
-- Custom command definitions
-- Multi-language support
 
 ## Contributing
 
