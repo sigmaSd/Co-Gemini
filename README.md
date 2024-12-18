@@ -103,5 +103,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 [MIT License](LICENSE)
 ```
-
-The new title "Co-Gemini" better reflects the application's role as a Gemini-powered copilot for desktop interactions. I've also slightly modified the introduction to emphasize this aspect.
