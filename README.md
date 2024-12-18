@@ -58,7 +58,7 @@ export API_KEY="your-google-api-key"
 1. Start the server:
 ```bash
 # Run with no setup
-deno run -A https://raw.githubusercontent.com/sigmaSd/Co-Gemini/refs/heads/master/main.ts
+deno run --reload -A https://raw.githubusercontent.com/sigmaSd/Co-Gemini/refs/heads/master/main.ts
 # Otherwise you can just clone the repo and run main.ts
 ```
 
