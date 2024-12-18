@@ -55,6 +55,7 @@ const HTML = `
     <div id="status">Ready</div>
     <button id="listen">Start Listening</button>
     <script>
+        let isListening = false;
         const ws = new WebSocket('ws://' + window.location.host + '/ws');
         const recognition = new webkitSpeechRecognition();
         const synthesis = window.speechSynthesis;
@@ -77,6 +78,11 @@ const HTML = `
             clearTimeout(utteranceTimer);
         }
 
+        recognition.onstart = () => {
+            isListening = true;
+            document.getElementById('status').textContent = 'Listening...';
+        };
+
         recognition.onresult = (event) => {
             const text = event.results[0][0].transcript;
             document.getElementById('status').textContent = 'You said: ' + text;
@@ -84,6 +90,7 @@ const HTML = `
         };
 
         recognition.onend = () => {
+            isListening = false;
             document.getElementById('status').textContent = 'Ready';
         };
 
@@ -106,8 +113,9 @@ const HTML = `
                 synthesis.speak(utterance);
             } else if (data.type === 'startListening') {
                 stopSpeaking();
-                recognition.start();
-                document.getElementById('status').textContent = 'Listening...';
+                if (!isListening) {
+                    recognition.start();
+                }
             }
         };
 
