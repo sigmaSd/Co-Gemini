@@ -39,7 +39,8 @@ Example:
 [text] ping 8.8.8.8
 [keyPress] Enter
 
-I'll provide feedback on your actions and you can take screenshots or ask for additional information when needed.`;
+I'll analyze your system's output and respond with actions when needed.
+Be concise in your commands, speak clearly, and stay focused on the task.`;
 
 const HTML = `
 <!DOCTYPE html>
@@ -81,6 +82,73 @@ const HTML = `
 </html>
 `;
 
+async function handleCommands(
+  text: string,
+  chat: ChatSession,
+  onResponse?: (text: string) => void,
+) {
+  if (text.includes("[Command]")) {
+    for (
+      const line of collections.dropWhile(
+        text.split("\n"),
+        (line) => line.startsWith("[Command]"),
+      )
+    ) {
+      if (line.startsWith("[Command]")) continue;
+      if (line.startsWith("[terminal]")) {
+        console.log("opening terminal");
+        open("gnome-terminal");
+      } else if (line.startsWith("[appName]")) {
+        console.log("opening app");
+        open(line.split(/\s+/)[1]);
+      } else if (line.startsWith("[text]")) {
+        console.log("sending text");
+        await $`xdotool type "${line.slice(6)}"`.quiet();
+      } else if (line.startsWith("[screenShot]")) {
+        console.log("taking screenshot");
+        const screenshot =
+          await $`rm /tmp/screenshot.png; flameshot full -p /tmp/screenshot.png && base64 -w 0 /tmp/screenshot.png`
+            .text();
+        const resp = await chat.sendMessage([
+          { inlineData: { data: screenshot, mimeType: "image/png" } },
+        ]);
+        const responseText = resp.response.text();
+        console.log(responseText);
+        onResponse?.(responseText);
+      } else if (line.startsWith("[clipBoard]")) {
+        const clipboard = await $`xclip -o -selection clipboard`.text();
+        const resp = await chat.sendMessage(`Clipboard: ${clipboard}`);
+        const responseText = resp.response.text();
+        console.log(responseText);
+        onResponse?.(responseText);
+      } else if (line.startsWith("[notify]")) {
+        await $`notify-send "${line.slice(8)}"`.quiet();
+      } else if (line.startsWith("[search]")) {
+        open("xdg-open", [
+          `https://www.google.com/search?q=${
+            encodeURIComponent(line.slice(8))
+          }`,
+        ]);
+      } else if (line.startsWith("[file]")) {
+        await $`xdg-open "${line.slice(6)}"`.quiet();
+      } else if (line.startsWith("[keyPress]")) {
+        await $`xdotool key ${line.split(/\s+/)[1]}`.quiet();
+      } else if (line.startsWith("[window]")) {
+        const action = line.split(/\s+/)[1];
+        if (action === "maximize") {
+          await $`xdotool getactivewindow windowmaximize`.quiet();
+        }
+        if (action === "minimize") {
+          await $`xdotool getactivewindow windowminimize`.quiet();
+        }
+        if (action === "close") {
+          await $`xdotool getactivewindow windowclose`.quiet();
+        }
+      }
+    }
+  }
+}
+
 if (import.meta.main) {
   const key = Deno.env.get("API_KEY");
   if (!key) throw new Error("No API KEY");
@@ -116,61 +184,7 @@ if (import.meta.main) {
       );
       const text = resp.response.text();
       console.log(text);
-      if (text.includes("[Command]")) {
-        for (
-          const line of collections.dropWhile(
-            text.split("\n"),
-            (line) => line.startsWith("[Command]"),
-          )
-        ) {
-          if (line.startsWith("[Command]")) continue;
-          if (line.startsWith("[terminal]")) {
-            console.log("opening terminal");
-            open("gnome-terminal");
-          } else if (line.startsWith("[appName]")) {
-            console.log("opening app");
-            open(line.split(/\s+/)[1]);
-          } else if (line.startsWith("[text]")) {
-            console.log("sending text");
-            await $`xdotool type "${line.slice(6)}"`.quiet();
-          } else if (line.startsWith("[screenShot]")) {
-            console.log("taking screenshot");
-            const screenshot =
-              await $`flameshot full -p /tmp/screenshot.png && base64 -w 0 /tmp/screenshot.png`
-                .text();
-            const resp = await chat.sendMessage([
-              { inlineData: { data: screenshot, mimeType: "image/png" } },
-            ]);
-            console.log(resp.response.text());
-          } else if (line.startsWith("[clipBoard]")) {
-            const clipboard = await $`xclip -o -selection clipboard`.text();
-            await chat.sendMessage(`Clipboard: ${clipboard}`);
-          } else if (line.startsWith("[notify]")) {
-            await $`notify-send "${line.slice(8)}"`.quiet();
-          } else if (line.startsWith("[search]")) {
-            open("xdg-open", [
-              `https://www.google.com/search?q=${
-                encodeURIComponent(line.slice(8))
-              }`,
-            ]);
-          } else if (line.startsWith("[file]")) {
-            await $`xdg-open "${line.slice(6)}"`.quiet();
-          } else if (line.startsWith("[keyPress]")) {
-            await $`xdotool key ${line.split(/\s+/)[1]}`.quiet();
-          } else if (line.startsWith("[window]")) {
-            const action = line.split(/\s+/)[1];
-            if (action === "maximize") {
-              await $`xdotool getactivewindow windowmaximize`.quiet();
-            }
-            if (action === "minimize") {
-              await $`xdotool getactivewindow windowminimize`.quiet();
-            }
-            if (action === "close") {
-              await $`xdotool getactivewindow windowclose`.quiet();
-            }
-          }
-        }
-      }
+      await handleCommands(text, chat);
     }
   } catch {
     /* ignore */
@@ -201,11 +215,17 @@ async function handleWebSocket({ chat, ws, connections }: {
             type: "speak",
             text: text,
           }));
+
+          await handleCommands(text, chat, (responseText) => {
+            ws.send(JSON.stringify({
+              type: "speak",
+              text: responseText,
+            }));
+          });
         }
       }
     });
 
-    // Keep the connection alive until closed
     await new Promise((resolve) => {
       ws.addEventListener("close", () => resolve(undefined));
       ws.addEventListener("error", (e) => {
