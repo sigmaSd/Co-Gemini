@@ -3,19 +3,33 @@ import * as collections from "jsr:@std/collections";
 import $ from "jsr:@david/dax";
 
 const AI_PROMPT =
-  `you are an ai assistant, you are on gnome fedora 41, i'm going to give you acess to some commands that you can use by just writing them:
-  - [terminal]: to open a terminal
-  - [appName] (name): to open an app
-  - [text] (text): to send text as is to a terminal maybe or some other app
-  - [screenShot]: this will take a screenshot of my pc and send it to you, use it to get more info on what I'm doing so you can help more, '
+  `You are an AI assistant running on GNOME Fedora 41. You have access to these commands:
 
-  lets start with that i'm going to talk to you and if you need do an action, just write the command and it'll automaticlly run
-  if I tell you to do something but you can't because u're missing a command, just write what would the command look like and i'll add it then rerun u
-  You can chain multiple commands each in a new line
-  the command message should start with [Command] in its own line, example
-  [Command]
-  [terminal]
-  [text] ping 8.8.8.8`;
+Available Commands:
+- [terminal]: Opens a new terminal window
+- [appName] (name): Launches a specific application
+- [text] (text): Sends text input to the active window
+- [screenShot]: Captures a screenshot for analysis
+- [clipBoard]: Reads the current clipboard content
+- [notify] (message): Sends a system notification
+- [search] (query): Opens browser with search query
+- [file] (path): Opens file with default app
+- [keyPress] (keys): Simulates keyboard input
+- [window] (action): Controls windows (maximize/minimize/close)
+
+To execute commands:
+1. Start with [Command] on a new line
+2. Each command on its own line
+3. You can chain multiple commands
+4. If you need a missing command, describe what it should do
+
+Example:
+[Command]
+[terminal]
+[text] ping 8.8.8.8
+[keyPress] Enter
+
+I'll provide feedback on your actions and you can take screenshots or ask for additional information when needed.`;
 
 const key = Deno.env.get("API_KEY");
 if (!key) throw new Error("No API KEY");
@@ -49,16 +63,42 @@ try {
           open(line.split(/\s+/)[1]);
         } else if (line.startsWith("[text]")) {
           console.log("sending text");
+          await $`xdotool type "${line.slice(6)}"`.quiet();
         } else if (line.startsWith("[screenShot]")) {
           console.log("taking screenshot");
           const screenshot =
             await $`flameshot full -p /tmp/screenshot.png && base64 -w 0 /tmp/screenshot.png`
               .text();
-          // sens screenshot to ai
           const resp = await chat.sendMessage([
             { inlineData: { data: screenshot, mimeType: "image/png" } },
           ]);
           console.log(resp.response.text());
+        } else if (line.startsWith("[clipBoard]")) {
+          const clipboard = await $`xclip -o -selection clipboard`.text();
+          await chat.sendMessage(`Clipboard: ${clipboard}`);
+        } else if (line.startsWith("[notify]")) {
+          await $`notify-send "${line.slice(8)}"`.quiet();
+        } else if (line.startsWith("[search]")) {
+          open("xdg-open", [
+            `https://www.google.com/search?q=${
+              encodeURIComponent(line.slice(8))
+            }`,
+          ]);
+        } else if (line.startsWith("[file]")) {
+          await $`xdg-open "${line.slice(6)}"`.quiet();
+        } else if (line.startsWith("[keyPress]")) {
+          await $`xdotool key ${line.split(/\s+/)[1]}`.quiet();
+        } else if (line.startsWith("[window]")) {
+          const action = line.split(/\s+/)[1];
+          if (action === "maximize") {
+            await $`xdotool getactivewindow windowmaximize`.quiet();
+          }
+          if (action === "minimize") {
+            await $`xdotool getactivewindow windowminimize`.quiet();
+          }
+          if (action === "close") {
+            await $`xdotool getactivewindow windowclose`.quiet();
+          }
         }
       }
     }
@@ -67,6 +107,6 @@ try {
   /* ignore */
 }
 
-function open(program: string) {
-  new Deno.Command(program).spawn();
+function open(program: string, args: string[] = []) {
+  new Deno.Command(program, { args }).spawn();
 }
