@@ -92,6 +92,7 @@ deno run --reload -A https://raw.githubusercontent.com/sigmaSd/Co-Gemini/refs/he
 ## Future Improvements
 
 - Video stream support is possible but currently not implemented to avoid high bandwidth usage
+- Support other systems
 
 ## Contributing
 
