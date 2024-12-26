@@ -91,6 +91,7 @@ deno run --reload -A https://raw.githubusercontent.com/sigmaSd/Co-Gemini/refs/he
 
 ## Future Improvements
 
+- Use gemini apis: "Function calling" and "Text to audio" in particular [google-gemini/cookbook/tree/main/gemini-2](https://github.com/google-gemini/cookbook/tree/main/gemini-2)
 - Video stream support is possible but currently not implemented to avoid high bandwidth usage
 - Support other systems
 - Make the commands extendable, maybe by exporting the needed part as a library
