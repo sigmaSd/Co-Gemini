@@ -45,7 +45,7 @@ sudo apt install xdotool xclip flameshot libnotify-bin
 
 0. Set up your API key:
 ```bash
-export API_KEY="your-google-api-key"
+export GOOGLE_API_KEY="your-google-api-key"
 ```
 
 1. Start the server:

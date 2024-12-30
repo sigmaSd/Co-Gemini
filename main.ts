@@ -1,7 +1,9 @@
-import { GoogleGenerativeAI } from "npm:@google/generative-ai";
-import * as collections from "jsr:@std/collections";
-import $ from "jsr:@david/dax";
-import { ChatSession } from "npm:@google/generative-ai";
+import {
+  type ChatSession,
+  GoogleGenerativeAI,
+} from "npm:@google/generative-ai@0.21.0";
+import * as collections from "jsr:@std/collections@1.0.9";
+import $ from "jsr:@david/dax@0.42.0";
 import * as readline from "node:readline/promises";
 import process from "node:process";
 
@@ -158,6 +160,7 @@ async function handleCommands(
         console.log("taking screenshot");
         const screenshot =
           await $`rm /tmp/screenshot.png; flameshot full -p /tmp/screenshot.png && base64 -w 0 /tmp/screenshot.png`
+            .quiet()
             .noThrow()
             .text();
         const resp = await chat.sendMessage([
@@ -202,7 +205,7 @@ async function handleCommands(
 }
 
 if (import.meta.main) {
-  const key = Deno.env.get("API_KEY");
+  const key = Deno.env.get("GOOGLE_API_KEY");
   if (!key) throw new Error("No API KEY");
   const genAI = new GoogleGenerativeAI(key);
 
